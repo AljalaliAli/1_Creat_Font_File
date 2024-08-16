@@ -3,9 +3,14 @@ import psMat  # Import the psMat module for transformations
 import configparser
 import os  # Import os module to handle file paths
 
+# Make ConfigParser case-sensitive
+class CaseSensitiveConfigParser(configparser.ConfigParser):
+    def optionxform(self, optionstr):
+        return optionstr
+
 # Function to read the configuration file
 def read_config(config_file='config.ini'):
-    config = configparser.ConfigParser()
+    config = CaseSensitiveConfigParser()
     config.read(config_file)
     return config
 
@@ -23,9 +28,10 @@ def create_font(config):
     font.familyname = familyname
     return font
 
-# Function to import image and autotrace glyph
+# Function to import image and autotrace glyph using character values
 def import_and_trace_glyph(font, char, image_path):
-    glyph = font.createChar(ord(char))
+    unicode_int = ord(char)  # Get the Unicode code point for the character
+    glyph = font.createChar(unicode_int)  # Create glyph using the character's Unicode value
     
     if not os.path.exists(image_path):
         print(f"Image for character '{char}' not found. Skipping this glyph.")
@@ -96,6 +102,8 @@ def main():
         if glyph:  # Only proceed if the glyph was successfully created
             scale_glyph(glyph, scaling_factor)
             center_and_align_glyph(glyph)
+
+            print(f"Processed character: {char}")
 
     save_font_files(font, sfd_path, ttf_path)
     font.close()
