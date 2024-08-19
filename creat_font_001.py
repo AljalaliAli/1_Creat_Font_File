@@ -53,14 +53,12 @@ def scale_glyph(glyph, scaling_factor):
     glyph.transform(psMat.scale(scaling_factor))
     print(f"Glyph scaled by factor: {scaling_factor}")
 
-# Function to center the glyph both horizontally and vertically using bounding box calculations
-def center_and_align_glyph(glyph):
+def center_and_align_glyph(glyph, alignment='bottom', vertical_offset=0):
     # Get the bounding box of the glyph
     min_x, min_y, max_x, max_y = glyph.boundingBox()
 
-    # Calculate the width and height of the glyph
+    # Calculate the width of the glyph
     glyph_width = max_x - min_x
-    glyph_height = max_y - min_y
 
     # Calculate the total width allocated for the glyph
     advance_width = glyph.width
@@ -68,14 +66,19 @@ def center_and_align_glyph(glyph):
     # Calculate the offset to center the glyph horizontally
     center_x_offset = (advance_width - glyph_width) // 2 - min_x
 
-    # Calculate the total height of the font (ascent + descent)
-    total_height = glyph.font.ascent + glyph.font.descent
+    # Determine vertical alignment and apply the offset
+    if alignment == 'bottom':
+        # Align the glyph to the bottom by translating the y-coordinate
+        y_offset = -min_y + vertical_offset
+    elif alignment == 'top':
+        # Align the glyph to the top by translating the y-coordinate
+        total_height = glyph.font.ascent + glyph.font.descent
+        y_offset = (glyph.font.ascent - max_y) + vertical_offset
+    else:
+        raise ValueError("Invalid alignment option. Use 'top' or 'bottom'.")
 
-    # Calculate the offset to center the glyph vertically
-    center_y_offset = ((glyph.font.ascent - glyph.font.descent) - glyph_height) // 2 - min_y
-
-    # Apply the transformation to center the glyph horizontally and vertically
-    glyph.transform(psMat.translate(center_x_offset, 0))
+    # Apply the transformation to center the glyph horizontally and align it vertically
+    glyph.transform(psMat.translate(center_x_offset, y_offset))
 
     # Recalculate the left and right side bearings to ensure the glyph is centered
     left_side_bearing = (advance_width - glyph_width) // 2
@@ -84,7 +87,8 @@ def center_and_align_glyph(glyph):
     glyph.left_side_bearing = int(left_side_bearing)
     glyph.right_side_bearing = int(right_side_bearing)
 
-    print(f"Glyph centered horizontally and vertically.")
+    print(f"Glyph centered horizontally and aligned to the {alignment} with a vertical offset of {vertical_offset}.")
+
 
 
 # Function to save font files
@@ -101,6 +105,8 @@ def main():
     sfd_path = config['PATHS']['sfd_path']
     ttf_path = config['PATHS']['ttf_path']
     scaling_factor = float(config['FONT_PROPERTIES']['scaling_factor'])
+    alignment = config['FONT_PROPERTIES'].get('alignment', 'bottom')  # Default to 'bottom'
+    vertical_offset = int(config['FONT_PROPERTIES'].get('vertical_offset', 0))  # Default to 0
 
     print("FontForge version:", fontforge.version())
 
@@ -113,7 +119,7 @@ def main():
         glyph = import_and_trace_glyph(font, char, image_path)
         if glyph:  # Only proceed if the glyph was successfully created
             scale_glyph(glyph, scaling_factor)
-            center_and_align_glyph(glyph)
+            center_and_align_glyph(glyph, alignment, vertical_offset)
 
             print(f"Processed character: {char}")
 
